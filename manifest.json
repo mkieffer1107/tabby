@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Counter",
+  "version": "1.0",
+  "description": "A Chrome extension to count tabs and windows.",
+  "permissions": ["tabs", "windows", "storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/tabby.png",
+      "32": "assets/tabby.png",
+      "48": "assets/tabby.png",
+      "128": "assets/tabby.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

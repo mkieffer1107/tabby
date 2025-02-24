@@ -1,0 +1,704 @@
+<context>
+<directory_tree>
+tab-counter/
+├── .DS_Store
+├── LICENSE
+├── README.md
+├── assets/
+│   ├── .DS_Store
+│   ├── ahhhh.png
+│   ├── tabby.png
+│   └── tabby2.jpeg
+├── background.js
+├── manifest.json
+├── popup.html
+├── popup.js
+└── tab-counter_prompt.txt
+</directory_tree>
+
+<files>
+
+<file>
+<path>LICENSE</path>
+<content>
+MIT License
+
+Copyright (c) 2025 Max Kieffer
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+</content>
+</file>
+
+<file>
+<path>README.md</path>
+<content>
+# tab-counter
+
+
+i was using a tab counter but it didn't give me breakdowns of the tabs that i wanted
+
+link image
+</content>
+</file>
+
+<file>
+<path>background.js</path>
+<content>
+let openTabs = 0;
+let tabDomains = {};
+let domainCounts = {};
+
+function getDomain(url) {
+  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+    return null;
+  }
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname.startsWith('www.') ? hostname.slice(4) : hostname;
+  } catch (e) {
+    return null;
+  }
+}
+
+function updateBadge() {
+  chrome.action.setBadgeText({ text: openTabs > 0 ? openTabs.toString() : "" });
+  chrome.action.setBadgeBackgroundColor({ color: "#FF3333" }); // Brighter red
+}
+
+function initializeState() {
+  chrome.tabs.query({}, (tabs) => {
+    openTabs = tabs.length;
+    tabDomains = {};
+    domainCounts = {};
+    for (const tab of tabs) {
+      const domain = getDomain(tab.url);
+      if (domain) {
+        tabDomains[tab.id] = domain;
+        domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+      }
+    }
+    chrome.storage.local.get(['maxConcurrentTabs'], (data) => {
+      const maxConcurrent = data.maxConcurrentTabs || 0;
+      if (openTabs > maxConcurrent) {
+        chrome.storage.local.set({ maxConcurrentTabs: openTabs });
+      }
+    });
+    updateBadge(); // Set initial badge text and color
+  });
+}
+
+initializeState();
+
+chrome.tabs.onCreated.addListener((tab) => {
+  openTabs++;
+  const domain = getDomain(tab.url);
+  if (domain) {
+    tabDomains[tab.id] = domain;
+    domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+  }
+  chrome.storage.local.get(['allTimeTabs'], (data) => {
+    const allTime = (data.allTimeTabs || 0) + 1;
+    chrome.storage.local.set({ allTimeTabs: allTime });
+  });
+  chrome.storage.local.get(['maxConcurrentTabs'], (data) => {
+    const maxConcurrent = data.maxConcurrentTabs || 0;
+    if (openTabs > maxConcurrent) {
+      chrome.storage.local.set({ maxConcurrentTabs: openTabs });
+    }
+  });
+  updateBadge(); // Update badge when tab is created
+});
+
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+  openTabs--;
+  if (tabDomains[tabId]) {
+    const domain = tabDomains[tabId];
+    domainCounts[domain]--;
+    if (domainCounts[domain] === 0) {
+      delete domainCounts[domain];
+    }
+    delete tabDomains[tabId];
+  }
+  updateBadge(); // Update badge when tab is removed
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    const oldDomain = tabDomains[tabId];
+    const newDomain = getDomain(changeInfo.url);
+    if (oldDomain) {
+      domainCounts[oldDomain]--;
+      if (domainCounts[oldDomain] === 0) {
+        delete domainCounts[oldDomain];
+      }
+    }
+    if (newDomain) {
+      domainCounts[newDomain] = (domainCounts[newDomain] || 0) + 1;
+    }
+    tabDomains[tabId] = newDomain;
+  }
+});
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'getData') {
+    Promise.all([
+      chrome.windows.getAll().then(windows => windows.length),
+      Promise.resolve(openTabs),
+      chrome.windows.getCurrent().then(window => chrome.tabs.query({ windowId: window.id }).then(tabs => tabs.length)),
+      chrome.storage.local.get(['allTimeTabs', 'maxConcurrentTabs']),
+      Promise.resolve(domainCounts)
+    ]).then(([openWindows, openTabs, currentWindowTabs, storageData, domainCounts]) => {
+      sendResponse({
+        openWindows,
+        openTabs,
+        currentWindowTabs,
+        allTimeTabs: storageData.allTimeTabs || 0,
+        maxConcurrentTabs: storageData.maxConcurrentTabs || 0,
+        domainCounts
+      });
+    });
+    return true;
+  } else if (request.type === 'resetAllTimeTabs') {
+    chrome.storage.local.set({ allTimeTabs: 0 });
+  } else if (request.type === 'resetMaxConcurrentTabs') {
+    chrome.storage.local.set({ maxConcurrentTabs: openTabs });
+  } else if (request.type === 'getTabsForDomain') {
+    chrome.tabs.query({}, (tabs) => {
+      const domainTabs = tabs.filter((tab) => {
+        const domain = getDomain(tab.url);
+        return domain === request.domain;
+      })
+        .map((tab) => ({ id: tab.id, title: tab.title, url: tab.url, windowId: tab.windowId, lastAccessed: tab.lastAccessed }));
+      sendResponse({ tabs: domainTabs });
+    });
+    return true;
+  }
+});
+</content>
+</file>
+
+<file>
+<path>manifest.json</path>
+<content>
+{
+  "manifest_version": 3,
+  "name": "Tab Counter",
+  "version": "1.0",
+  "description": "A Chrome extension to count tabs and windows.",
+  "permissions": ["tabs", "windows", "storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/tabby.png",
+      "32": "assets/tabby.png",
+      "48": "assets/tabby.png",
+      "128": "assets/tabby.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
+</content>
+</file>
+
+<file>
+<path>popup.html</path>
+<content>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tabby</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 300px;
+      padding: 10px;
+      margin: 0;
+      box-sizing: border-box;
+    }
+    h1, h2 {
+      font-size: 16px;
+      margin: 10px 0;
+    }
+    p {
+      margin: 5px 0;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    button {
+      padding: 2px 5px;
+      font-size: 12px;
+      cursor: pointer;
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    button:hover {
+      background-color: #e0e0e0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 5px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 5px;
+      text-align: left;
+      font-size: 12px;
+    }
+    th {
+      background-color: #f5f5f5;
+    }
+    tr.clickable:hover {
+      background-color: #f0f0f0;
+      cursor: pointer;
+    }
+    canvas {
+      margin-top: 10px;
+      max-height: 200px;
+    }
+    .button-group {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+    #domainView, #tabView, #searchView {
+      display: none;
+    }
+    #domainView.active, #tabView.active, #searchView.active {
+      display: block;
+    }
+    #tabList, #searchResults {
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 5px;
+    }
+    #tabList ul, #searchResults ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #tabList li {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: background-color 0.2s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #tabList li:hover {
+      background-color: #f0f0f0;
+      cursor: pointer;
+    }
+    #tabList li:active {
+      background-color: #e0e0e0;
+    }
+    #searchResults .panel {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: background-color 0.2s;
+    }
+    #searchResults .panel:hover {
+      background-color: #f0f0f0;
+      cursor: pointer;
+    }
+    #searchResults .panel:active {
+      background-color: #e0e0e0;
+    }
+    #searchResults .panel-title {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #searchResults .panel-match {
+      font-size: 11px;
+      color: #555;
+    }
+    #searchResults .highlight {
+      background-color: #ffff99;
+      padding: 1px 3px;
+      border-radius: 2px;
+    }
+    .search-container {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 5px 25px 5px 10px;
+      font-size: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .search-icon {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      color: #888;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="search-container">
+    <input type="text" id="searchInput" class="search-input" placeholder="Search tabs...">
+    <span class="search-icon">🔍</span>
+  </div>
+  <h1>Tabby</h1>
+  <div>
+    <p>Open windows: <span id="openWindows"></span></p>
+    <p>Open tabs: <span id="openTabs"></span></p>
+    <p>Current window tabs: <span id="currentWindowTabs"></span></p>
+    <p>All-time tabs: <span id="allTimeTabs"></span> <button id="resetAllTime">Reset</button></p>
+    <p>Max concurrent tabs: <span id="maxConcurrent"></span> <button id="resetMaxConcurrent">Reset</button></p>
+  </div>
+  <h2 id="viewTitle">Domain Breakdown</h2>
+  <div id="domainView" class="active">
+    <div class="button-group">
+      <button id="toggleMode">Switch to Proportions</button>
+      <button id="toggleSort">Sort Ascending</button>
+    </div>
+    <table id="domainTable">
+      <thead>
+        <tr><th>Domain</th><th>Value</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <canvas id="domainChart"></canvas>
+  </div>
+  <div id="tabView">
+    <div class="button-group">
+      <button id="backToDomains">Back to Domains</button>
+      <button id="toggleTabSort">Sort by Last Accessed</button>
+    </div>
+    <div id="tabList"></div>
+  </div>
+  <div id="searchView">
+    <div id="searchResults"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
+</content>
+</file>
+
+<file>
+<path>popup.js</path>
+<content>
+let displayMode = 'counts';
+let sortOrder = 'descending';
+let currentData = null;
+let allTabs = [];
+let tabSortMode = 'firstOpened'; // Default sort mode
+
+function updateUI(data) {
+  currentData = data;
+  document.getElementById('openWindows').textContent = data.openWindows;
+  document.getElementById('openTabs').textContent = data.openTabs;
+  document.getElementById('currentWindowTabs').textContent = data.currentWindowTabs;
+  document.getElementById('allTimeTabs').textContent = data.allTimeTabs;
+  document.getElementById('maxConcurrent').textContent = data.maxConcurrentTabs;
+
+  if (document.getElementById('domainView').classList.contains('active')) {
+    updateDomainView(data);
+  }
+}
+
+function updateDomainView(data) {
+  document.getElementById('viewTitle').textContent = 'Domain Breakdown';
+  const domainArray = Object.entries(data.domainCounts);
+  domainArray.sort((a, b) => {
+    if (sortOrder === 'descending') {
+      return b[1] - a[1];
+    } else {
+      return a[1] - b[1];
+    }
+  });
+
+  const domainTableBody = document.querySelector('#domainTable tbody');
+  domainTableBody.innerHTML = '';
+  const totalDomainTabs = Object.values(data.domainCounts).reduce((sum, count) => sum + count, 0) || 1;
+  for (const [domain, count] of domainArray) {
+    const row = document.createElement('tr');
+    row.classList.add('clickable');
+    const domainCell = document.createElement('td');
+    domainCell.textContent = domain;
+    const valueCell = document.createElement('td');
+    if (displayMode === 'counts') {
+      valueCell.textContent = count;
+    } else {
+      const percentage = (count / totalDomainTabs * 100).toFixed(2) + '%';
+      valueCell.textContent = percentage;
+    }
+    row.appendChild(domainCell);
+    row.appendChild(valueCell);
+    row.addEventListener('click', () => showTabsForDomain(domain));
+    domainTableBody.appendChild(row);
+  }
+
+  const chartData = {
+    labels: domainArray.map(([domain]) => domain),
+    datasets: [{
+      data: displayMode === 'counts' 
+        ? domainArray.map(([, count]) => count) 
+        : domainArray.map(([, count]) => (count / totalDomainTabs * 100).toFixed(2)),
+      backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40', '#c9cbcf', '#e7e9ed', '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4'],
+    }]
+  };
+  const chartOptions = {
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const label = context.label || '';
+            const value = context.raw;
+            if (displayMode === 'counts') {
+              return `${label}: ${value}`;
+            } else {
+              return `${label}: ${value}%`;
+            }
+          }
+        }
+      }
+    },
+    maintainAspectRatio: false
+  };
+  if (window.domainChart) {
+    window.domainChart.data = chartData;
+    window.domainChart.options = chartOptions;
+    window.domainChart.update();
+  } else {
+    window.domainChart = new Chart(document.getElementById('domainChart'), {
+      type: 'pie',
+      data: chartData,
+      options: chartOptions
+    });
+  }
+}
+
+function showTabsForDomain(domain) {
+  document.getElementById('domainView').classList.remove('active');
+  document.getElementById('tabView').classList.add('active');
+  document.getElementById('searchView').classList.remove('active');
+  document.getElementById('viewTitle').textContent = `Tabs for ${domain}`;
+  
+  chrome.runtime.sendMessage({ type: 'getTabsForDomain', domain }, (response) => {
+    const tabs = response.tabs;
+    tabs.sort((a, b) => {
+      if (tabSortMode === 'firstOpened') {
+        return a.id - b.id; // Lower ID = older tab
+      } else {
+        return b.lastAccessed - a.lastAccessed; // Higher lastAccessed = more recent
+      }
+    });
+
+    const tabList = document.getElementById('tabList');
+    tabList.innerHTML = '';
+    const ul = document.createElement('ul');
+    tabList.appendChild(ul);
+    tabs.forEach(tab => {
+      const li = document.createElement('li');
+      li.textContent = tab.title;
+      li.addEventListener('click', () => {
+        chrome.tabs.update(tab.id, { active: true });
+        chrome.windows.update(tab.windowId, { focused: true });
+      });
+      ul.appendChild(li);
+    });
+  });
+}
+
+function showDomainView() {
+  document.getElementById('tabView').classList.remove('active');
+  document.getElementById('searchView').classList.remove('active');
+  document.getElementById('domainView').classList.add('active');
+  document.getElementById('viewTitle').textContent = 'Domain Breakdown';
+  if (currentData) {
+    updateDomainView(currentData);
+  }
+}
+
+// Fetch all tabs for search
+function fetchAllTabs() {
+  chrome.tabs.query({}, (tabs) => {
+    allTabs = tabs.map(tab => ({ id: tab.id, title: tab.title, url: tab.url, windowId: tab.windowId }));
+  });
+}
+
+fetchAllTabs();
+
+// Debounce function to limit search frequency
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
+
+// Exact string matching function
+function exactSearch(query, text) {
+  const lowerQuery = query.toLowerCase();
+  const lowerText = text.toLowerCase();
+  const index = lowerText.indexOf(lowerQuery);
+  if (index === -1) return null;
+  return text.slice(index, index + query.length); // Return the exact match
+}
+
+// Handle search input
+document.getElementById('searchInput').addEventListener('input', debounce((event) => {
+  const query = event.target.value.trim();
+  if (query.length === 0) {
+    document.getElementById('searchView').classList.remove('active');
+    document.getElementById('domainView').classList.add('active');
+    document.getElementById('tabView').classList.remove('active');
+    document.getElementById('viewTitle').textContent = 'Domain Breakdown';
+    if (currentData) {
+      updateDomainView(currentData);
+    }
+    return;
+  }
+
+  document.getElementById('domainView').classList.remove('active');
+  document.getElementById('tabView').classList.remove('active');
+  document.getElementById('searchView').classList.add('active');
+  document.getElementById('viewTitle').textContent = 'Search Results';
+
+  const results = allTabs.map(tab => {
+    const titleMatch = exactSearch(query, tab.title);
+    const urlMatch = exactSearch(query, tab.url);
+    return {
+      tab,
+      match: titleMatch || urlMatch,
+      source: titleMatch ? 'title' : 'url'
+    };
+  }).filter(result => result.match);
+
+  const searchResults = document.getElementById('searchResults');
+  searchResults.innerHTML = '';
+
+  if (results.length === 0) {
+    searchResults.innerHTML = '<p>No tabs found.</p>';
+    return;
+  }
+
+  results.forEach(result => {
+    const panel = document.createElement('div');
+    panel.classList.add('panel');
+
+    const title = document.createElement('div');
+    title.classList.add('panel-title');
+    title.textContent = result.source === 'title' ? result.tab.title : result.tab.url;
+    panel.appendChild(title);
+
+    const match = document.createElement('div');
+    match.classList.add('panel-match');
+    const text = result.source === 'title' ? result.tab.title : result.tab.url;
+    const matchIndex = text.toLowerCase().indexOf(result.match.toLowerCase());
+    const before = text.slice(0, matchIndex);
+    const highlighted = text.slice(matchIndex, matchIndex + result.match.length);
+    const after = text.slice(matchIndex + result.match.length);
+    match.innerHTML = `${before}<span class="highlight">${highlighted}</span>${after}`;
+    panel.appendChild(match);
+
+    panel.addEventListener('click', () => {
+      chrome.tabs.update(result.tab.id, { active: true });
+      chrome.windows.update(result.tab.windowId, { focused: true });
+    });
+
+    searchResults.appendChild(panel);
+  });
+}, 300));
+
+// On load, fetch data and update UI
+chrome.runtime.sendMessage({ type: 'getData' }, (data) => {
+  updateUI(data);
+});
+
+// Toggle between counts and proportions
+document.getElementById('toggleMode').addEventListener('click', () => {
+  displayMode = displayMode === 'counts' ? 'proportions' : 'counts';
+  document.getElementById('toggleMode').textContent = displayMode === 'counts' ? 'Switch to Proportions' : 'Switch to Counts';
+  if (currentData) {
+    updateDomainView(currentData);
+  }
+});
+
+// Toggle between ascending and descending sort order
+document.getElementById('toggleSort').addEventListener('click', () => {
+  sortOrder = sortOrder === 'descending' ? 'ascending' : 'descending';
+  document.getElementById('toggleSort').textContent = sortOrder === 'descending' ? 'Sort Ascending' : 'Sort Descending';
+  if (currentData) {
+    updateDomainView(currentData);
+  }
+});
+
+// Toggle tab sort mode
+document.getElementById('toggleTabSort').addEventListener('click', () => {
+  tabSortMode = tabSortMode === 'firstOpened' ? 'lastAccessed' : 'firstOpened';
+  document.getElementById('toggleTabSort').textContent = tabSortMode === 'firstOpened' ? 'Sort by Last Accessed' : 'Sort by First Opened';
+  const currentDomain = document.getElementById('viewTitle').textContent.replace('Tabs for ', '');
+  showTabsForDomain(currentDomain);
+});
+
+// Back to domain view
+document.getElementById('backToDomains').addEventListener('click', () => {
+  showDomainView();
+});
+
+// Reset all-time tabs
+document.getElementById('resetAllTime').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'resetAllTimeTabs' });
+  chrome.runtime.sendMessage({ type: 'getData' }, (data) => {
+    updateUI(data);
+  });
+});
+
+// Reset max concurrent tabs
+document.getElementById('resetMaxConcurrent').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'resetMaxConcurrentTabs' });
+  chrome.runtime.sendMessage({ type: 'getData' }, (data) => {
+    updateUI(data);
+  });
+});
+</content>
+</file>
+
+</files>
+</context>
