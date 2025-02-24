@@ -1,8 +1,13 @@
 let displayMode = 'counts';
-let sortOrder = 'descending';
+let sortColumn = 'value'; // Default sort column
+let sortOrder = 'descending'; // Default sort order
+const defaultSortOrders = {
+  domain: 'ascending', // Default for domain: A-Z
+  value: 'descending' // Default for value: highest first
+};
 let currentData = null;
 let allTabs = [];
-let tabSortMode = 'firstOpened'; // Default sort mode
+let tabSortMode = 'firstOpened'; // Default sort mode for tabs
 
 function updateUI(data) {
   currentData = data;
@@ -20,11 +25,12 @@ function updateUI(data) {
 function updateDomainView(data) {
   document.getElementById('viewTitle').textContent = 'Domain Breakdown';
   const domainArray = Object.entries(data.domainCounts);
+  const orderMultiplier = sortOrder === 'ascending' ? 1 : -1;
   domainArray.sort((a, b) => {
-    if (sortOrder === 'descending') {
-      return b[1] - a[1];
-    } else {
-      return a[1] - b[1];
+    if (sortColumn === 'domain') {
+      return orderMultiplier * a[0].localeCompare(b[0]);
+    } else { // sortColumn === 'value'
+      return orderMultiplier * (a[1] - b[1]);
     }
   });
 
@@ -48,6 +54,10 @@ function updateDomainView(data) {
     row.addEventListener('click', () => showTabsForDomain(domain));
     domainTableBody.appendChild(row);
   }
+
+  // Update sort arrows
+  document.getElementById('domainArrow').textContent = sortColumn === 'domain' ? (sortOrder === 'ascending' ? '▲' : '▼') : '↕';
+  document.getElementById('valueArrow').textContent = sortColumn === 'value' ? (sortOrder === 'ascending' ? '▲' : '▼') : '↕';
 
   const chartData = {
     labels: domainArray.map(([domain]) => domain),
@@ -237,15 +247,6 @@ document.getElementById('toggleMode').addEventListener('click', () => {
   }
 });
 
-// Toggle between ascending and descending sort order
-document.getElementById('toggleSort').addEventListener('click', () => {
-  sortOrder = sortOrder === 'descending' ? 'ascending' : 'descending';
-  document.getElementById('toggleSort').textContent = sortOrder === 'descending' ? 'Sort Ascending' : 'Sort Descending';
-  if (currentData) {
-    updateDomainView(currentData);
-  }
-});
-
 // Toggle tab sort mode
 document.getElementById('toggleTabSort').addEventListener('click', () => {
   tabSortMode = tabSortMode === 'firstOpened' ? 'lastAccessed' : 'firstOpened';
@@ -273,4 +274,25 @@ document.getElementById('resetMaxConcurrent').addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'getData' }, (data) => {
     updateUI(data);
   });
+});
+
+// Add event listeners for sorting
+document.getElementById('domainHeader').addEventListener('click', () => {
+  if (sortColumn === 'domain') {
+    sortOrder = sortOrder === 'ascending' ? 'descending' : 'ascending';
+  } else {
+    sortColumn = 'domain';
+    sortOrder = defaultSortOrders.domain;
+  }
+  updateDomainView(currentData);
+});
+
+document.getElementById('valueHeader').addEventListener('click', () => {
+  if (sortColumn === 'value') {
+    sortOrder = sortOrder === 'ascending' ? 'descending' : 'ascending';
+  } else {
+    sortColumn = 'value';
+    sortOrder = defaultSortOrders.value;
+  }
+  updateDomainView(currentData);
 });

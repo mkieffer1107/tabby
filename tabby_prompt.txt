@@ -1,19 +1,19 @@
 <context>
 <directory_tree>
-tab-counter/
+tabby/
 ├── .DS_Store
+├── .gitignore
 ├── LICENSE
 ├── README.md
 ├── assets/
 │   ├── .DS_Store
 │   ├── ahhhh.png
 │   ├── tabby.png
-│   └── tabby2.jpeg
+│   └── tabby2.png
 ├── background.js
 ├── manifest.json
 ├── popup.html
-├── popup.js
-└── tab-counter_prompt.txt
+└── popup.js
 </directory_tree>
 
 <files>
@@ -49,12 +49,13 @@ SOFTWARE.
 <file>
 <path>README.md</path>
 <content>
-# tab-counter
+# Tabby 😸
 
+<img src="assets/tabby.png" alt="ahhhh" width="400">
 
 i was using a tab counter but it didn't give me breakdowns of the tabs that i wanted
 
-link image
+![ahhhh](assets/ahhhh.png)
 </content>
 </file>
 
@@ -199,17 +200,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 <content>
 {
   "manifest_version": 3,
-  "name": "Tab Counter",
+  "name": "Tabby 😸",
   "version": "1.0",
   "description": "A Chrome extension to count tabs and windows.",
   "permissions": ["tabs", "windows", "storage"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "assets/tabby.png",
-      "32": "assets/tabby.png",
-      "48": "assets/tabby.png",
-      "128": "assets/tabby.png"
+      "16": "assets/tabby2.png",
+      "32": "assets/tabby2.png",
+      "48": "assets/tabby2.png",
+      "128": "assets/tabby2.png"
     }
   },
   "background": {
@@ -226,7 +227,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tabby</title>
+  <title>Tabby 😸</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -380,7 +381,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     <input type="text" id="searchInput" class="search-input" placeholder="Search tabs...">
     <span class="search-icon">🔍</span>
   </div>
-  <h1>Tabby</h1>
+  <h1>Tabby 😸</h1>
   <div>
     <p>Open windows: <span id="openWindows"></span></p>
     <p>Open tabs: <span id="openTabs"></span></p>

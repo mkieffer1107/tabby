@@ -46,6 +46,15 @@
     }
     th {
       background-color: #f5f5f5;
+      cursor: pointer;
+    }
+    th:hover {
+      background-color: #e0e0e0;
+    }
+    th span {
+      font-size: 12px; /* Slightly larger for visibility */
+      margin-left: 4px; /* Space between text and arrow */
+      vertical-align: middle;
     }
     tr.clickable:hover {
       background-color: #f0f0f0;
@@ -168,11 +177,13 @@
   <div id="domainView" class="active">
     <div class="button-group">
       <button id="toggleMode">Switch to Proportions</button>
-      <button id="toggleSort">Sort Ascending</button>
     </div>
     <table id="domainTable">
       <thead>
-        <tr><th>Domain</th><th>Value</th></tr>
+        <tr>
+          <th id="domainHeader" title="Click to sort by domain">Domain <span id="domainArrow">↕</span></th>
+          <th id="valueHeader" title="Click to sort by value">Value <span id="valueArrow">↕</span></th>
+        </tr>
       </thead>
       <tbody></tbody>
     </table>
