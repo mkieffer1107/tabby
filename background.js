@@ -16,7 +16,8 @@ function getDomain(url) {
 
 function updateBadge() {
   chrome.action.setBadgeText({ text: openTabs > 0 ? openTabs.toString() : "" });
-  chrome.action.setBadgeBackgroundColor({ color: "#FF3333" }); // Brighter red
+  chrome.action.setBadgeBackgroundColor({ color: "#FF0000" }); // Brighter red
+  chrome.action.setBadgeTextColor({ color: "#FFFFFF" }); // White text
 }
 
 function initializeState() {

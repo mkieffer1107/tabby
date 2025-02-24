@@ -1,13 +1,13 @@
 let displayMode = 'counts';
-let sortColumn = 'value'; // Default sort column
-let sortOrder = 'descending'; // Default sort order
+let sortColumn = 'value';
+let sortOrder = 'descending';
 const defaultSortOrders = {
-  domain: 'ascending', // Default for domain: A-Z
-  value: 'descending' // Default for value: highest first
+  domain: 'ascending',
+  value: 'descending'
 };
 let currentData = null;
 let allTabs = [];
-let tabSortMode = 'firstOpened'; // Default sort mode for tabs
+let tabSortMode = 'firstOpened';
 
 function updateUI(data) {
   currentData = data;
@@ -29,7 +29,7 @@ function updateDomainView(data) {
   domainArray.sort((a, b) => {
     if (sortColumn === 'domain') {
       return orderMultiplier * a[0].localeCompare(b[0]);
-    } else { // sortColumn === 'value'
+    } else {
       return orderMultiplier * (a[1] - b[1]);
     }
   });
@@ -40,8 +40,19 @@ function updateDomainView(data) {
   for (const [domain, count] of domainArray) {
     const row = document.createElement('tr');
     row.classList.add('clickable');
+    
     const domainCell = document.createElement('td');
-    domainCell.textContent = domain;
+    domainCell.classList.add('domain-cell');
+    const favicon = document.createElement('img');
+    favicon.src = `https://www.google.com/s2/favicons?domain=${domain}`;
+    favicon.alt = `${domain} favicon`;
+    const domainText = document.createElement('span');
+    domainText.className = 'domain-name'; // Added class for truncation
+    domainText.textContent = domain;
+    domainText.title = domain; // Added tooltip for full domain name
+    domainCell.appendChild(favicon);
+    domainCell.appendChild(domainText);
+    
     const valueCell = document.createElement('td');
     if (displayMode === 'counts') {
       valueCell.textContent = count;
@@ -49,15 +60,32 @@ function updateDomainView(data) {
       const percentage = (count / totalDomainTabs * 100).toFixed(2) + '%';
       valueCell.textContent = percentage;
     }
+    
     row.appendChild(domainCell);
     row.appendChild(valueCell);
     row.addEventListener('click', () => showTabsForDomain(domain));
     domainTableBody.appendChild(row);
   }
 
-  // Update sort arrows
-  document.getElementById('domainArrow').textContent = sortColumn === 'domain' ? (sortOrder === 'ascending' ? '▲' : '▼') : '↕';
-  document.getElementById('valueArrow').textContent = sortColumn === 'value' ? (sortOrder === 'ascending' ? '▲' : '▼') : '↕';
+  // Update sort indicators with SVG icons
+  const domainArrow = document.getElementById('domainArrow');
+  const valueArrow = document.getElementById('valueArrow');
+  document.getElementById('domainHeader').classList.toggle('sorted', sortColumn === 'domain');
+  document.getElementById('valueHeader').classList.toggle('sorted', sortColumn === 'value');
+
+  // Domain column uses alphabetical sort icons
+  domainArrow.innerHTML = sortColumn === 'domain' 
+    ? (sortOrder === 'ascending' 
+        ? '<svg class="sort-arrow"><use href="#sort-alpha-ascending"></use></svg>' 
+        : '<svg class="sort-arrow"><use href="#sort-alpha-descending"></use></svg>')
+    : '<svg class="sort-arrow"><use href="#sort-alpha-descending"></use></svg>'; // Default to descending for domain
+
+  // Value column uses numerical sort icons
+  valueArrow.innerHTML = sortColumn === 'value' 
+    ? (sortOrder === 'ascending' 
+        ? '<svg class="sort-arrow"><use href="#sort-ascending"></use></svg>' 
+        : '<svg class="sort-arrow"><use href="#sort-descending"></use></svg>')
+    : '<svg class="sort-arrow"><use href="#sort-descending"></use></svg>'; // Default to descending for value
 
   const chartData = {
     labels: domainArray.map(([domain]) => domain),
@@ -65,7 +93,7 @@ function updateDomainView(data) {
       data: displayMode === 'counts' 
         ? domainArray.map(([, count]) => count) 
         : domainArray.map(([, count]) => (count / totalDomainTabs * 100).toFixed(2)),
-      backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56', '#4bc0c0', '#9966ff', '#ff9f40', '#c9cbcf', '#e7e9ed', '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4'],
+      backgroundColor: ['#4a90e2', '#50e3c2', '#f5a623', '#d0021b', '#9013fe', '#7ed321', '#f8e71c', '#bd10e0', '#8b572a', '#b8e986'],
     }]
   };
   const chartOptions = {
@@ -109,9 +137,9 @@ function showTabsForDomain(domain) {
     const tabs = response.tabs;
     tabs.sort((a, b) => {
       if (tabSortMode === 'firstOpened') {
-        return a.id - b.id; // Lower ID = older tab
+        return a.id - b.id;
       } else {
-        return b.lastAccessed - a.lastAccessed; // Higher lastAccessed = more recent
+        return b.lastAccessed - a.lastAccessed;
       }
     });
 
@@ -141,16 +169,21 @@ function showDomainView() {
   }
 }
 
-// Fetch all tabs for search
 function fetchAllTabs() {
   chrome.tabs.query({}, (tabs) => {
-    allTabs = tabs.map(tab => ({ id: tab.id, title: tab.title, url: tab.url, windowId: tab.windowId }));
+    allTabs = tabs.map(tab => ({
+      id: tab.id,
+      title: tab.title,
+      url: tab.url,
+      windowId: tab.windowId,
+      lowerTitle: tab.title.toLowerCase(),
+      lowerUrl: tab.url.toLowerCase()
+    }));
   });
 }
 
 fetchAllTabs();
 
-// Debounce function to limit search frequency
 function debounce(func, wait) {
   let timeout;
   return function(...args) {
@@ -159,16 +192,12 @@ function debounce(func, wait) {
   };
 }
 
-// Exact string matching function
-function exactSearch(query, text) {
-  const lowerQuery = query.toLowerCase();
-  const lowerText = text.toLowerCase();
+function exactSearch(lowerQuery, lowerText, text) {
   const index = lowerText.indexOf(lowerQuery);
   if (index === -1) return null;
-  return text.slice(index, index + query.length); // Return the exact match
+  return text.slice(index, index + lowerQuery.length);
 }
 
-// Handle search input
 document.getElementById('searchInput').addEventListener('input', debounce((event) => {
   const query = event.target.value.trim();
   if (query.length === 0) {
@@ -187,9 +216,10 @@ document.getElementById('searchInput').addEventListener('input', debounce((event
   document.getElementById('searchView').classList.add('active');
   document.getElementById('viewTitle').textContent = 'Search Results';
 
+  const lowerQuery = query.toLowerCase();
   const results = allTabs.map(tab => {
-    const titleMatch = exactSearch(query, tab.title);
-    const urlMatch = exactSearch(query, tab.url);
+    const titleMatch = exactSearch(lowerQuery, tab.lowerTitle, tab.title);
+    const urlMatch = exactSearch(lowerQuery, tab.lowerUrl, tab.url);
     return {
       tab,
       match: titleMatch || urlMatch,
@@ -202,43 +232,43 @@ document.getElementById('searchInput').addEventListener('input', debounce((event
 
   if (results.length === 0) {
     searchResults.innerHTML = '<p>No tabs found.</p>';
-    return;
-  }
+  } else {
+    const fragment = document.createDocumentFragment();
+    results.forEach(result => {
+      const panel = document.createElement('div');
+      panel.classList.add('panel');
 
-  results.forEach(result => {
-    const panel = document.createElement('div');
-    panel.classList.add('panel');
+      const title = document.createElement('div');
+      title.classList.add('panel-title');
+      title.textContent = result.source === 'title' ? result.tab.title : result.tab.url;
+      panel.appendChild(title);
 
-    const title = document.createElement('div');
-    title.classList.add('panel-title');
-    title.textContent = result.source === 'title' ? result.tab.title : result.tab.url;
-    panel.appendChild(title);
+      const match = document.createElement('div');
+      match.classList.add('panel-match');
+      const text = result.source === 'title' ? result.tab.title : result.tab.url;
+      const lowerText = result.source === 'title' ? result.tab.lowerTitle : result.tab.lowerUrl;
+      const matchIndex = lowerText.indexOf(lowerQuery);
+      const before = text.slice(0, matchIndex);
+      const highlighted = text.slice(matchIndex, matchIndex + lowerQuery.length);
+      const after = text.slice(matchIndex + lowerQuery.length);
+      match.innerHTML = `${before}<span class="highlight">${highlighted}</span>${after}`;
+      panel.appendChild(match);
 
-    const match = document.createElement('div');
-    match.classList.add('panel-match');
-    const text = result.source === 'title' ? result.tab.title : result.tab.url;
-    const matchIndex = text.toLowerCase().indexOf(result.match.toLowerCase());
-    const before = text.slice(0, matchIndex);
-    const highlighted = text.slice(matchIndex, matchIndex + result.match.length);
-    const after = text.slice(matchIndex + result.match.length);
-    match.innerHTML = `${before}<span class="highlight">${highlighted}</span>${after}`;
-    panel.appendChild(match);
+      panel.addEventListener('click', () => {
+        chrome.tabs.update(result.tab.id, { active: true });
+        chrome.windows.update(result.tab.windowId, { focused: true });
+      });
 
-    panel.addEventListener('click', () => {
-      chrome.tabs.update(result.tab.id, { active: true });
-      chrome.windows.update(result.tab.windowId, { focused: true });
+      fragment.appendChild(panel);
     });
+    searchResults.appendChild(fragment);
+  }
+}, 100));
 
-    searchResults.appendChild(panel);
-  });
-}, 300));
-
-// On load, fetch data and update UI
 chrome.runtime.sendMessage({ type: 'getData' }, (data) => {
   updateUI(data);
 });
 
-// Toggle between counts and proportions
 document.getElementById('toggleMode').addEventListener('click', () => {
   displayMode = displayMode === 'counts' ? 'proportions' : 'counts';
   document.getElementById('toggleMode').textContent = displayMode === 'counts' ? 'Switch to Proportions' : 'Switch to Counts';
@@ -247,7 +277,6 @@ document.getElementById('toggleMode').addEventListener('click', () => {
   }
 });
 
-// Toggle tab sort mode
 document.getElementById('toggleTabSort').addEventListener('click', () => {
   tabSortMode = tabSortMode === 'firstOpened' ? 'lastAccessed' : 'firstOpened';
   document.getElementById('toggleTabSort').textContent = tabSortMode === 'firstOpened' ? 'Sort by Last Accessed' : 'Sort by First Opened';
@@ -255,12 +284,10 @@ document.getElementById('toggleTabSort').addEventListener('click', () => {
   showTabsForDomain(currentDomain);
 });
 
-// Back to domain view
 document.getElementById('backToDomains').addEventListener('click', () => {
   showDomainView();
 });
 
-// Reset all-time tabs
 document.getElementById('resetAllTime').addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'resetAllTimeTabs' });
   chrome.runtime.sendMessage({ type: 'getData' }, (data) => {
@@ -268,7 +295,6 @@ document.getElementById('resetAllTime').addEventListener('click', () => {
   });
 });
 
-// Reset max concurrent tabs
 document.getElementById('resetMaxConcurrent').addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'resetMaxConcurrentTabs' });
   chrome.runtime.sendMessage({ type: 'getData' }, (data) => {
@@ -276,7 +302,6 @@ document.getElementById('resetMaxConcurrent').addEventListener('click', () => {
   });
 });
 
-// Add event listeners for sorting
 document.getElementById('domainHeader').addEventListener('click', () => {
   if (sortColumn === 'domain') {
     sortOrder = sortOrder === 'ascending' ? 'descending' : 'ascending';

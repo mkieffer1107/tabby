@@ -7,10 +7,10 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "assets/tabby2.png",
-      "32": "assets/tabby2.png",
-      "48": "assets/tabby2.png",
-      "128": "assets/tabby2.png"
+      "16": "assets/cat.png",
+      "32": "assets/cat.png",
+      "48": "assets/cat.png",
+      "128": "assets/cat.png"
     }
   },
   "background": {
