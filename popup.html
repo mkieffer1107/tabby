@@ -5,166 +5,419 @@
   <title>Tabby 😸</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    :root {
+      --background-1: #ffffff;
+      --background-2: #fafafa;
+      --color-1: #f5f5f5;
+      --color-2: #eaeaea;
+      --color-3: #e1e1e1;
+      --color-4: #e5e5e5;
+      --color-5: #d4d4d4;
+      --color-6: #888888;
+      --color-7: #666666;
+      --color-8: #444444;
+      --color-9: #333333;
+      --color-10: #000000;
+      --blue-1: #eaf5fe;
+      --blue-5: #0070f3;
+      --blue-6: #0761d1;
+      --red-1: #fff0f0;
+      --red-5: #f31260;
+      --red-6: #cd0a56;
+      --green-1: #edfff4;
+      --green-5: #17c964;
+      --green-6: #13b459;
+      --amber-1: #fffbeb;
+      --amber-5: #f59e0b;
+      --purple-1: #f5f3ff;
+      --purple-5: #8b5cf6;
+      --pink-1: #fdf2f8;
+      --pink-5: #ec4899;
+      --radius: 5px;
+      --shadow-small: 0 2px 4px rgba(0,0,0,0.05);
+      --shadow-medium: 0 5px 10px rgba(0,0,0,0.1);
+      --transition: all 0.2s ease;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      width: 300px;
-      padding: 10px;
+      width: 320px;
+      padding: 16px;
       margin: 0;
       box-sizing: border-box;
+      background-color: var(--background-1);
+      color: var(--color-10);
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      position: relative;
+      min-height: 32px;
     }
 
     h1 {
-      font-size: 18px;
-      margin: 10px 0;
-    }
-
-    h2 {
-      font-size: 16px;
-      margin: 10px 0;
-    }
-
-    /* Search Input */
-    .search-container {
+      font-size: 20px;
+      margin: 0;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      z-index: 1;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: left center;
+      white-space: nowrap;
       position: relative;
-      margin-bottom: 10px;
+    }
+    
+    h1 .title-text {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 1;
+    }
+    
+    h1 .emoji {
+      margin-right: 4px;
+      display: inline-block;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: center;
+      cursor: pointer; /* Add cursor pointer to indicate it's clickable */
+    }
+    
+    /* Add animation for when the emoji is clicked */
+    @keyframes catBounce {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+    
+    h1 .emoji.meow {
+      animation: catBounce 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .search-active h1 {
+      transform: scale(0.9);
+    }
+    
+    .search-active h1 .title-text {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+    }
+    
+    .search-active h1 .emoji {
+      transform: scale(1.1);
+      margin-right: 0;
+    }
+
+    .search-trigger {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: var(--blue-1);
+      border: none;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--blue-5);
+      margin-left: auto;
+      position: relative;
+      z-index: 6;
+    }
+
+    .search-trigger:hover {
+      background-color: var(--blue-5);
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .search-trigger svg {
+      width: 16px;
+      height: 16px;
+      pointer-events: none;
+    }
+
+    .search-container {
+      position: absolute;
+      right: 0;
+      top: 0;
+      height: 32px;
+      width: 32px;
+      border-radius: 32px;
+      overflow: hidden;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background-color: var(--blue-1);
+      display: flex;
+      align-items: center;
+      box-shadow: 0 0 0 0px rgba(0, 112, 243, 0);
+      z-index: 5;
+    }
+    
+    .search-container.active {
+      width: calc(100% - 40px);
+      margin-left: 40px;
+      box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2);
     }
 
     .search-input {
       width: 100%;
-      padding: 5px 30px 5px 10px;
-      font-size: 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
+      padding: 0 40px 0 16px;
+      height: 32px;
+      font-size: 14px;
+      border: none;
+      background-color: transparent;
+      transition: var(--transition);
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .search-container.active .search-input {
+      opacity: 1;
+      pointer-events: all;
     }
 
     .search-input:focus {
-      border-color: #4a90e2;
       outline: none;
+    }
+    
+    .search-input::placeholder {
+      color: var(--color-7);
+      transition: var(--transition);
+    }
+    
+    .search-input:focus::placeholder {
+      color: var(--color-6);
     }
 
     .search-icon {
       position: absolute;
       right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 14px;
-      height: 14px;
-      color: #888;
-      pointer-events: none;
+      width: 16px;
+      height: 16px;
+      color: var(--blue-5);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    
+    .search-icon:hover {
+      color: var(--blue-6);
     }
 
-    /* Stats Section */
     .stats {
-      margin-bottom: 15px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
     }
 
-    .stat-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 5px 0;
+    .stat-card {
+      background-color: var(--background-2);
+      border-radius: var (--radius);
+      padding: 12px;
+      position: relative;
+      transition: var(--transition);
+      box-shadow: var(--shadow-small);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-medium);
+    }
+
+    .stat-card--highlight {
+      background-color: var(--blue-1);
+    }
+
+    .stat-card--highlight .stat-value {
+      color: var(--blue-6);
     }
 
     .stat-label {
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-8);
+      margin-bottom: 6px;
+      display: block;
     }
 
     .stat-value {
-      font-weight: normal;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--color-9);
+      display: flex;
+      align-items: center;
+    }
+
+    .stat-actions {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      opacity: 0.6;
+      transition: var(--transition);
+    }
+
+    .stat-card:hover .stat-actions {
+      opacity: 1;
+    }
+
+    .reset-btn {
+      background-color: transparent;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 4px;
+      padding: 0 6px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: none;
+    }
+
+    .reset-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border-color: white;
+    }
+
+    .stat-group {
+      grid-column: span 2;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .stat-icon {
+      width: 16px;
+      height: 16px;
+      margin-right: 6px;
+      opacity: 0.7;
     }
 
     hr {
       border: none;
-      border-top: 1px solid #ddd;
-      margin: 10px 0;
+      border-top: 1px solid var(--color-2);
+      margin: 16px 0;
     }
 
-    /* Buttons */
     button {
-      background-color: #4a90e2;
+      background-color: var(--blue-5);
       color: white;
       border: none;
-      border-radius: 4px;
-      padding: 4px 8px;
+      border-radius: var(--radius);
+      padding: 6px 12px;
       font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: var(--transition);
+      box-shadow: var(--shadow-small);
     }
 
     button:hover {
-      background-color: #357abd;
+      background-color: var(--blue-6);
+      box-shadow: var(--shadow-medium);
     }
 
-    /* Domain Table */
+    button#resetAllTime, button#resetMaxConcurrent {
+      background-color: var(--red-5);
+      margin-left: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    button#resetAllTime:hover, button#resetMaxConcurrent:hover {
+      background-color: var(--red-6);
+    }
+
     #domainTable {
       width: 100%;
       border-collapse: separate;
       border-spacing: 0;
-      table-layout: fixed; /* Ensures the column widths are fixed */
+      border-radius: var (--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-small);
+      table-layout: fixed;
     }
 
     #domainTable th, #domainTable td {
-      padding: 8px;
+      padding: 10px 12px;
       text-align: left;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid var(--color-2);
     }
 
     #domainTable td:nth-child(2) {
-      text-align: center; /* Center the numbers in the Value column */
+      text-align: center;
     }
 
     #domainTable th {
-      background-color: #f5f5f5;
+      background-color: var(--color-1);
       font-weight: 600;
       cursor: pointer;
+      color: var(--color-9);
+      border-bottom: 1px solid var(--color-3);
+      transition: var(--transition);
     }
 
     #domainTable th:hover {
-      background-color: #e0e0e0;
+      background-color: var(--color-2);
     }
 
     #domainTable th.sorted {
-      color: #4a90e2;
+      color: var(--blue-5);
     }
 
     #domainTable tr:hover {
-      background-color: #f9f9f9;
+      background-color: var(--blue-1);
     }
 
     #domainTable tr.clickable:hover {
-      background-color: #f9f9f9;
-      cursor: pointer; /* Added to show clickable cursor on hover */
+      background-color: var(--blue-1);
+      cursor: pointer;
     }
     
+    #domainTable tr {
+      transition: var(--transition);
+    }
+    
+    #domainTable tr:last-child td {
+      border-bottom: none;
+    }
+
     .domain-cell {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .domain-cell img {
-      width: 16px;
+      width: 16px; /* Increased to 32px to showcase higher-resolution favicons */
       height: 16px;
+      border-radius: 3px;
+      object-fit: contain;
     }
 
     .domain-name {
-      white-space: nowrap;         /* Prevents text from wrapping to a new line */
-      overflow: hidden;            /* Hides content that exceeds the container */
-      text-overflow: ellipsis;     /* Adds "..." to truncated text */
-      flex: 1;                     /* Allows the span to take remaining space in flex container */
-      min-width: 0;                /* Ensures the span can shrink below its content size */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+      color: var (--color-9);
     }
 
-    /* Sort Arrows */
     .sort-arrow {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       vertical-align: middle;
       margin-left: 4px;
     }
 
-    /* Ensure header text and icon stay on one line */
     #domainHeader {
       width: 60%;
       white-space: nowrap;
@@ -175,13 +428,13 @@
       white-space: nowrap;
     }
 
-    /* Domain Chart */
     #domainChart {
-      margin-top: 15px;
+      margin-top: 20px;
       height: 200px;
+      border-radius: var(--radius);
+      overflow: hidden;
     }
 
-    /* Tab View */
     #tabList ul {
       list-style: none;
       padding: 0;
@@ -189,13 +442,13 @@
     }
 
     #tabList li {
-      background-color: #fff;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 10px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: background-color 0.2s, box-shadow 0.2s;
+      background-color: var(--background-1);
+      border: 1px solid var(--color-3);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-bottom: 8px;
+      box-shadow: var (--shadow-small);
+      transition: var(--transition);
       cursor: pointer;
       white-space: nowrap;
       overflow: hidden;
@@ -203,132 +456,403 @@
     }
 
     #tabList li:hover {
-      background-color: #f0f0f0;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      background-color: var(--blue-1);
+      border-color: var(--blue-5);
+      box-shadow: var(--shadow-medium);
     }
 
-    /* Search View */
+    #searchView {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    #searchView.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    #searchResults {
+      display: grid;
+      gap: 10px;
+    }
+    
     #searchResults .panel {
-      background-color: #fff;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 10px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: background-color 0.2s, box-shadow 0.2s;
+      background-color: var(--background-1);
+      border: 1px solid var(--color-3);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: var(--shadow-small);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
+      position: relative;
+      overflow: hidden;
     }
 
     #searchResults .panel:hover {
-      background-color: #f0f0f0;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      background-color: var(--blue-1);
+      border-color: var(--blue-5);
+      box-shadow: var(--shadow-medium);
+      transform: translateY(-2px);
+    }
+    
+    #searchResults .panel.selected {
+      background-color: var(--blue-1);
+      border-color: var(--blue-5);
+      box-shadow: var(--shadow-medium);
+      transform: translateY(-2px);
+    }
+    
+    #searchResults .panel:active {
+      transform: translateY(0);
+      box-shadow: var(--shadow-small);
+    }
+    
+    #searchResults .panel::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background: var(--blue-5);
+      opacity: 0;
+      transition: var(--transition);
+    }
+    
+    #searchResults .panel:hover::before {
+      opacity: 1;
     }
 
     #searchResults .panel-title {
       font-weight: 600;
-      margin-bottom: 5px;
-      font-size: 12px;
+      margin-bottom: 6px;
+      font-size: 14px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      color: var(--color-9);
+      display: flex;
+      align-items: center;
+    }
+    
+    #searchResults .panel-title::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--blue-5);
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    
+    #searchResults .panel[data-source="url"] .panel-title::before {
+      background-color: var(--green-5);
     }
 
     #searchResults .panel-match {
-      font-size: 11px;
-      color: #555;
+      font-size: 13px;
+      color: var(--color-7);
+      padding: 4px 0;
+      position: relative;
+      line-height: 1.4;
     }
 
     #searchResults .highlight {
-      background-color: #f8e71c;
+      background-color: rgba(0, 112, 243, 0.15);
+      color: var (--blue-6);
       padding: 0;
+      font-weight: 600;
       border-radius: 2px;
     }
+    
+    #searchResults .no-results {
+      text-align: center;
+      padding: 20px;
+      color: var(--color-7);
+      font-style: italic;
+    }
+    
+    .keyboard-hint {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%) translateY(5px);
+      font-size: 11px;
+      color: var(--color-6);
+      background: var(--color-1);
+      padding: 3px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--color-4);
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 10;
+      white-space: nowrap;
+    }
+    
+    .keyboard-hint.active {
+      opacity: 0.9;
+      transform: translateX(-50%) translateY(0);
+    }
+    
+    .shortcut-key {
+      display: inline-block;
+      padding: 0px 5px;
+      margin: 0 2px;
+      border-radius: 3px;
+      background: var(--color-3);
+      border: 1px solid var(--color-4);
+      color: var(--color-8);
+      font-family: monospace;
+    }
 
-    /* View Handling */
     #domainView, #tabView, #searchView {
       display: none;
+      transition: opacity 0.2s ease;
     }
 
     #domainView.active, #tabView.active, #searchView.active {
       display: block;
     }
+    
+    .view-container {
+      min-height: 360px;
+      position: relative;
+    }
 
     #tabList, #searchResults {
-      max-height: 250px;
+      max-height: 300px;
       overflow-y: auto;
-      padding: 5px;
+      padding: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-5) transparent;
+      position: relative;
+    }
+
+    #tabList::-webkit-scrollbar, #searchResults::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #tabList::-webkit-scrollbar-track, #searchResults::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #tabList::-webkit-scrollbar-thumb, #searchResults::-webkit-scrollbar-thumb {
+      background-color: var(--color-5);
+      border-radius: 20px;
     }
 
     .button-group {
       display: flex;
-      gap: 5px;
-      margin-bottom: 10px;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    h2 {
+      font-size: 16px;
+      margin: 16px 0;
+      font-weight: 600;
+      color: var(--color-9);
+      position: relative;
+      display: inline-block;
+    }
+    
+    h2.search-results {
+      color: var(--blue-6);
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    body.search-mode .stats,
+    body.search-mode hr {
+      visibility: hidden;
+      height: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    body.search-mode #domainView.active,
+    body.search-mode #tabView.active {
+      display: none;
+    }
+
+    body.search-mode #searchView {
+      margin-top: 0;
+      min-height: 360px;
+    }
+    
+    body.search-mode h2 {
+      margin-top: 0;
+    }
+    
+    body.search-mode::after {
+      content: '';
+      display: block;
+      height: var(--content-placeholder-height, 0px);
+    }
+
+    .stat-card-with-reset {
+      padding-bottom: 32px;
     }
   </style>
-  <!-- SVG Definitions -->
   <svg width="0" height="0" style="position: absolute;">
     <defs>
-      <!-- Alphabetical Sort Icons for Domain -->
       <symbol id="sort-alpha-ascending" viewBox="0 0 16 16">
-        <path fill="currentColor" fill-rule="evenodd" d="M4.338 12.274V1.91h1v10.363L7 10.749l.676.737l-2.838 2.603L2 11.486l.676-.737zM10.628 2h1.744l.981 3.271l.02.051a23 23 0 0 1 .29.796c.08.232.161.487.223.72c.058.216.114.465.114.662h-1c0-.053-.022-.187-.08-.404a11 11 0 0 0-.203-.655a20 20 0 0 0-.181-.506h-2.072c-.053.142-.117.319-.181.506c-.076.222-.15.453-.203.655c-.058.217-.08.351-.08.404H9c0-.197.056-.446.114-.663c.062-.232.143-.487.223-.719a22 22 0 0 1 .29-.796l.02-.05zm.164 2.935h1.416L11.628 3h-.256zM9 9h5v1.25L10.333 13H14v1H9v-1.25L12.667 10H9z" clip-rule="evenodd"/>
+        <path fill="currentColor" fill-rule="evenodd" d="M4.338 12.274V1.91h1v10.363L7 10.749l.676.737l-2.838 2.603L2 11.486l.676-.737zM10.628 2h1.744l.981 3.271l.02.051a23 23 0 0 1 .29.796c.08.232.161.487.223.72c.058.216.114.465.114.662h-1c0-.053-.022-.187-.80 -.404a11 11 0 0 0-.203-.655a20 20 0 0 0-.181-.506h-2.072c-.053.142-.117.319-.181.506c-.076.222-.15.453-.203.655c-.058.217-.08.351-.80.404H9c0-.197.056-.446.114-.663c.062-.232.143-.487.223-.719a22 22 0 0 1 .29-.796l.02-.05zm.164 2.935h1.416L11.628 3h-.256zM9 9h5v1.25L10.333 13H14v1H9v-1.25L12.667 10H9z" clip-rule="evenodd"/>
       </symbol>
       <symbol id="sort-alpha-descending" viewBox="0 0 16 16">
         <path fill="currentColor" fill-rule="evenodd" d="M4.338 12.274V1.91h1v10.363L7 10.749l.676.737l-2.838 2.603L2 11.486l.676-.737zM9 2h4.5v1.207L10.207 6.5H13.5v1H9V6.293L12.293 3H9zm1.662 6.5h1.21l1 3.336l.02.047a20 20 0 0 1 .281.767c.077.224.156.471.216.698c.057.212.111.455.111.652h-1a2 2 0 0 0-.077-.395a10 10 0 0 0-.196-.63c-.06-.175-.12-.341-.17-.475h-1.952c-.07.141-.16.325-.25.52a8 8 0 0 0-.259.624q-.052.145-.076.246l-.017.08L9.5 14h-1c0-.22.079-.48.154-.69a9 9 0 0 1 .291-.705a17 17 0 0 1 .377-.77l.024-.045zm-.123 3h1.189l-.51-1.7z" clip-rule="evenodd"/>
       </symbol>
-      <!-- Numerical Sort Icons for Value -->
       <symbol id="sort-descending" viewBox="0 0 16 16">
         <path fill="currentColor" fill-rule="evenodd" d="M10.954 12.274V1.91h1v10.363l1.662-1.525l.676.737l-2.838 2.603l-2.838-2.603l.676-.737zM7.708 4.16h-6v-1h6zm0 3h-5v-1h5zm0 3h-4v-1h4zm0 3h-3v-1h3z" clip-rule="evenodd"/>
       </symbol>
       <symbol id="sort-ascending" viewBox="0 0 16 16">
         <path fill="currentColor" fill-rule="evenodd" d="m11.454 1.91l2.838 2.604l-.676.737l-1.662-1.525V14.09h-1V3.726L9.292 5.251l-.676-.737zM7.708 4.16h-3v-1h3zm0 3h-4v-1h4zm0 3h-5v-1h5zm0 3h-6v-1h6z" clip-rule="evenodd"/>
       </symbol>
-      <!-- Search Icon -->
-      <symbol id="search-icon" viewBox="0 0 16 16">
+      <symbol id="sort-icon" viewBox="0 0 16 16">
         <path fill="currentColor" fill-rule="evenodd" d="M14 4H2V3h12zM9.456 6.005a2.451 2.451 0 1 0 0 4.902a2.451 2.451 0 0 0 0-4.902m-3.451 2.45a3.451 3.451 0 1 1 6.219 2.062l1.717 1.716l-.708.707l-1.716-1.716a3.451 3.451 0 0 1-5.512-2.768M5 8.5H2v-1h3zM6 13H2v-1h4z" clip-rule="evenodd"/>
+      </symbol>
+      <symbol id="icon-window" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V5h14v14z"/>
+      </symbol>
+      <symbol id="icon-tab" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h10v4h8v10z"/>
+      </symbol>
+      <symbol id="icon-history" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+      </symbol>
+      <symbol id="icon-reset" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+      </symbol>
+      <symbol id="icon-max" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
       </symbol>
     </defs>
   </svg>
 </head>
 <body>
-  <div class="search-container">
-    <input type="text" id="searchInput" class="search-input" placeholder="Search tabs...">
-    <svg class="search-icon"><use href="#search-icon"></use></svg>
+  <div class="header">
+    <h1>
+      <span class="emoji">😸</span>
+      <span class="title-text">Tabby</span>
+    </h1>
+    <button id="searchTrigger" class="search-trigger" aria-label="Search tabs">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11.5 10.5H10.875L10.6625 10.2875C11.4875 9.3375 12 8.1125 12 6.75C12 3.6 9.4 1 6.25 1C3.1 1 0.5 3.6 0.5 6.75C0.5 9.9 3.1 12.5 6.25 12.5C7.6125 12.5 8.8375 11.9875 9.7875 11.1625L10 11.375V12L14.5 16.5L16 15L11.5 10.5ZM6.25 10.5C4.175 10.5 2.5 8.825 2.5 6.75C2.5 4.675 4.175 3 6.25 3C8.325 3 10 4.675 10 6.75C10 8.825 8.325 10.5 6.25 10.5Z" fill="currentColor"/>
+      </svg>
+    </button>
+    <div id="searchContainer" class="search-container">
+      <input type="text" id="searchInput" class="search-input" placeholder="Search tabs...">
+      <span class="search-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11.5 10.5H10.875L10.6625 10.2875C11.4875 9.3375 12 8.1125 12 6.75C12 3.6 9.4 1 6.25 1C3.1 1 0.5 3.6 0.5 6.75C0.5 9.9 3.1 12.5 6.25 12.5C7.6125 12.5 8.8375 11.9875 9.7875 11.1625L10 11.375V12L14.5 16.5L16 15L11.5 10.5ZM6.25 10.5C4.175 10.5 2.5 8.825 2.5 6.75C2.5 4.675 4.175 3 6.25 3C8.325 3 10 4.675 10 6.75C10 8.825 8.325 10.5 6.25 10.5Z" fill="currentColor"/>
+        </svg>
+      </span>
+    </div>
   </div>
-  <h1>Tabby 😸</h1>
+  
   <div class="stats">
-    <p class="stat-item"><span class="stat-label">Open windows:</span> <span id="openWindows" class="stat-value"></span></p>
-    <p class="stat-item"><span class="stat-label">Open tabs:</span> <span id="openTabs" class="stat-value"></span></p>
-    <p class="stat-item"><span class="stat-label">Current window tabs:</span> <span id="currentWindowTabs" class="stat-value"></span></p>
-    <p class="stat-item"><span class="stat-label">All-time tabs:</span> <span id="allTimeTabs" class="stat-value"></span> <button id="resetAllTime">Reset</button></p>
-    <p class="stat-item"><span class="stat-label">Max concurrent tabs:</span> <span id="maxConcurrent" class="stat-value"></span> <button id="resetMaxConcurrent">Reset</button></p>
+    <div class="stat-card">
+      <span class="stat-label">Open Windows</span>
+      <div class="stat-value">
+        <svg class="stat-icon"><use href="#icon-window"></use></svg>
+        <span id="openWindows"></span>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <span class="stat-label">Current Window</span>
+      <div class="stat-value">
+        <svg class="stat-icon"><use href="#icon-tab"></use></svg>
+        <span id="currentWindowTabs"></span>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <span class="stat-label">Current Window Pinned</span>
+      <div class="stat-value">
+        <svg class="stat-icon"><use href="#icon-tab"></use></svg>
+        <span id="currentWindowPinnedTabs"></span>
+      </div>
+    </div>
+    
+    <div class="stat-card stat-card--highlight">
+      <span class="stat-label">Open Tabs</span>
+      <div class="stat-value">
+        <svg class="stat-icon"><use href="#icon-tab"></use></svg>
+        <span id="openTabs"></span>
+      </div>
+    </div>
+    
+    <div class="stat-card stat-card-with-reset">
+      <span class="stat-label">All-time Tabs</span>
+      <div class="stat-value">
+        <svg class="stat-icon"><use href="#icon-history"></use></svg>
+        <span id="allTimeTabs"></span>
+      </div>
+      <div class="stat-actions">
+        <button id="resetAllTime" class="reset-btn" title="Reset all-time tabs counter">
+          Reset
+        </button>
+      </div>
+    </div>
+    
+    <div class="stat-card stat-card-with-reset">
+      <span class="stat-label">Max Concurrent</span>
+      <div class="stat-value">
+        <svg class="stat-icon"><use href="#icon-max"></use></svg>
+        <span id="maxConcurrent"></span>
+      </div>
+      <div class="stat-actions">
+        <button id="resetMaxConcurrent" class="reset-btn" title="Reset max concurrent tabs counter">
+          Reset
+        </button>
+      </div>
+    </div>
   </div>
   <hr>
   <h2 id="viewTitle">Domain Breakdown</h2>
-  <div id="domainView" class="active">
-    <div class="button-group">
-      <button id="toggleMode">Switch to Proportions</button>
+  
+  <div class="view-container">
+    <div id="domainView" class="active">
+      <div class="button-group">
+        <!-- "Switch to Proportions" button removed -->
+      </div>
+      <table id="domainTable">
+        <thead>
+          <tr>
+            <th id="domainHeader" title="Click to sort by domain">Domain <span id="domainArrow"></span></th>
+            <th id="valueHeader" title="Click to sort by count">Counts <span id="valueArrow"></span></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <canvas id="domainChart"></canvas>
     </div>
-    <table id="domainTable">
-      <thead>
-        <tr>
-          <th id="domainHeader" title="Click to sort by domain">Domain <span id="domainArrow"></span></th>
-          <th id="valueHeader" title="Click to sort by value">Value <span id="valueArrow"></span></th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <canvas id="domainChart"></canvas>
-  </div>
-  <div id="tabView">
-    <div class="button-group">
-      <button id="backToDomains">Back to Domains</button>
-      <button id="toggleTabSort">Sort by Last Accessed</button>
+    <div id="tabView">
+      <div class="button-group">
+        <button id="backToDomains">Back to Domains</button>
+        <button id="toggleTabSort">Sort by Last Accessed</button>
+      </div>
+      <div id="tabList"></div>
     </div>
-    <div id="tabList"></div>
+    <div id="searchView">
+      <div id="searchResults"></div>
+    </div>
   </div>
-  <div id="searchView">
-    <div id="searchResults"></div>
+  <div class="keyboard-hint">
+    Navigate with <span class="shortcut-key">↑</span> <span class="shortcut-key">↓</span>, select with <span class="shortcut-key">Enter</span>
   </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

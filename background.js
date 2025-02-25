@@ -38,7 +38,7 @@ function initializeState() {
         chrome.storage.local.set({ maxConcurrentTabs: openTabs });
       }
     });
-    updateBadge(); // Set initial badge text and color
+    updateBadge();
   });
 }
 
@@ -61,7 +61,7 @@ chrome.tabs.onCreated.addListener((tab) => {
       chrome.storage.local.set({ maxConcurrentTabs: openTabs });
     }
   });
-  updateBadge(); // Update badge when tab is created
+  updateBadge();
 });
 
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
@@ -74,7 +74,7 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     }
     delete tabDomains[tabId];
   }
-  updateBadge(); // Update badge when tab is removed
+  updateBadge();
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -96,20 +96,38 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'getData') {
-    Promise.all([
-      chrome.windows.getAll().then(windows => windows.length),
-      Promise.resolve(openTabs),
-      chrome.windows.getCurrent().then(window => chrome.tabs.query({ windowId: window.id }).then(tabs => tabs.length)),
-      chrome.storage.local.get(['allTimeTabs', 'maxConcurrentTabs']),
-      Promise.resolve(domainCounts)
-    ]).then(([openWindows, openTabs, currentWindowTabs, storageData, domainCounts]) => {
-      sendResponse({
-        openWindows,
-        openTabs,
-        currentWindowTabs,
-        allTimeTabs: storageData.allTimeTabs || 0,
-        maxConcurrentTabs: storageData.maxConcurrentTabs || 0,
-        domainCounts
+    chrome.tabs.query({}, (tabs) => {
+      const domainCounts = {};
+      const domainFavicons = {};
+      tabs.forEach(tab => {
+        const domain = getDomain(tab.url);
+        if (domain) {
+          domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+          // Store the favicon URL if available and not already set
+          // This prioritizes the first tab's favicon; could be enhanced to check resolution
+          if (tab.favIconUrl && !domainFavicons[domain]) {
+            domainFavicons[domain] = tab.favIconUrl;
+          }
+        }
+      });
+      Promise.all([
+        chrome.windows.getAll().then(windows => windows.length),
+        Promise.resolve(tabs.length),
+        chrome.windows.getCurrent().then(window => chrome.tabs.query({ windowId: window.id }).then(tabs => tabs.length)),
+        chrome.windows.getCurrent().then(window => chrome.tabs.query({ windowId: window.id, pinned: true }).then(tabs => tabs.length)),
+        chrome.storage.local.get(['allTimeTabs', 'maxConcurrentTabs']),
+        Promise.resolve({ domainCounts, domainFavicons })
+      ]).then(([openWindows, openTabs, currentWindowTabs, currentWindowPinnedTabs, storageData, domainData]) => {
+        sendResponse({
+          openWindows,
+          openTabs,
+          currentWindowTabs,
+          currentWindowPinnedTabs,
+          allTimeTabs: storageData.allTimeTabs || 0,
+          maxConcurrentTabs: storageData.maxConcurrentTabs || 0,
+          domainCounts: domainData.domainCounts,
+          domainFavicons: domainData.domainFavicons
+        });
       });
     });
     return true;

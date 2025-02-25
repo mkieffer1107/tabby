@@ -5,3 +5,30 @@
 i was using a tab counter but it didn't give me breakdowns of the tabs that i wanted
 
 ![ahhhh](assets/ahhhh.png)
+
+
+
+
+
+
+roadmap:
+- store dates tabs were first opened / last accessed    
+    - ui and stuff: an hour ago, today, yesterday, month-day-year, or maybe always month-day-year...
+- filter by date / time
+- when hovering over tabs, there should be like a right arrow icon in a box indicating that it will bring you to it
+- dedup option if possible to show same ones
+
+
+if it's the same as before, don't refresh the search result
+because it looks jittery
+
+also when you go up and down with arrow keys, when you hold
+down it's very laggy
+
+
+the package size if 15mb. it's coming from
+the .git and assets folder:
+(base) mkieffer@MaxBook tabby % du -md 1 | sort -n
+8       ./.git
+8       ./assets
+16      .
