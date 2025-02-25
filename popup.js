@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
       meowSound = new Audio('assets/infinifi-meow.mp3');
     }
     
+    // Change emoji to 😸
+    catEmoji.textContent = '😸';
+    
     // Start playing immediately - no delay
     meowSound.currentTime = 0;
     const playPromise = meowSound.play();
@@ -28,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     catEmoji.classList.add('meow');
     setTimeout(() => {
       catEmoji.classList.remove('meow');
+      // Revert emoji back to 😺
+      catEmoji.textContent = '😺';
     }, 600); // Match animation duration in CSS
     
     // Handle potential autoplay restrictions
