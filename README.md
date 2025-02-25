@@ -2,10 +2,12 @@
 
 <img src="assets/tabby.png" alt="ahhhh" width="400">
 
-i was using a tab counter but it didn't give me breakdowns of the tabs that i wanted
+
+i was using a tab counter but it didn't give me enough visibility into my tabs
 
 ![ahhhh](assets/ahhhh.png)
 
+![underconstruction](assets/underconstruction.gif)
 
 
 
